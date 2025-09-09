@@ -11,16 +11,17 @@ import SwiftUI
 struct momentum_iOSApp: App {
     @StateObject private var appState = AppState()
 
-        var body: some Scene {
-            WindowGroup {
+    var body: some Scene {
+        WindowGroup {
+            if appState.isLoggedIn {
+                DashboardView()
+                    .environmentObject(appState)
+            } else {
                 NavigationView {
-                    if appState.isLoggedIn {
-                        DashboardView()
-                    } else {
-                        LoginView()
-                    }
+                    LoginView()
                 }
                 .environmentObject(appState)
             }
         }
     }
+}
