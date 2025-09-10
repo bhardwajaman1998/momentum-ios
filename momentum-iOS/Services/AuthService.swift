@@ -7,7 +7,7 @@
 
 import Foundation
 
-struct User: Codable{
+struct User: Codable {
     let id: String
     let email: String
     let name: String
@@ -20,27 +20,27 @@ enum AuthError: Error, LocalizedError {
     case unknown
     
     var errorDescription: String? {
-        switch self{
+        switch self {
         case .invalidCredentials:
-            retuyrn "Inavlid creddentials"
+            return "Invalid credentials"
         case .serverError:
-            retuyrn "Server error"
+            return "Server error"
         case .tokenMissing:
-            retuyrn "Auth token missing"
+            return "Auth token missing"
         case .unknown:
-            retuyrn "Unknown error"
+            return "Unknown error"
         }
     }
 }
 
 protocol AuthService {
     func login(email: String, password: String) async throws -> User
-    func register(email: String, password: String, name: String) async throws -> User
+    func register(email: String, password: String, name: String?) async throws -> User
     func logout()
     func getStoredToken() -> String?
 }
 
-final class AutAuthService: AuthService {
+final class AuthServiceImpl: AuthService {
     private let baseURL = "http://localhost:5000/api"
     private let useMock = true
     
@@ -55,25 +55,30 @@ final class AutAuthService: AuthService {
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         let body = ["email": email, "password": password]
-        let jsonData = try JSONSerialization.data(withJSONObject: body, options: [])
-        request.httpBody = jsonData
+        request.httpBody = try JSONSerialization.data(withJSONObject: body, options: [])
         
         let (data, response) = try await URLSession.shared.data(for: request)
         
-        guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 201 else {
-            throw AuthError.serverError
+        guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
+            throw AuthError.invalidCredentials
         }
-        struct Response: Codable{
+        
+        struct Response: Codable {
             let token: String
             let user: User
         }
-        let decoded = try JSONDecoder().decode(Response.self, from: data)
         
+        let decoded = try JSONDecoder().decode(Response.self, from: data)
         KeychainManager.shared.save(decoded.token, forKey: "authToken")
+        
         return decoded.user
     }
     
     func register(email: String, password: String, name: String?) async throws -> User {
+        if useMock {
+            return try await mockRegister()
+        }
+        
         let url = URL(string: "\(baseURL)/auth/register")!
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
@@ -98,8 +103,6 @@ final class AutAuthService: AuthService {
         }
         
         let decoded = try JSONDecoder().decode(Response.self, from: data)
-        
-        // Save token in Keychain
         KeychainManager.shared.save(decoded.token, forKey: "authToken")
         
         return decoded.user

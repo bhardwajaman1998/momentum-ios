@@ -6,46 +6,68 @@
 //
 
 import Foundation
-import KeychainAccess
-
-final class KeychainManager{
+final class KeychainManager {
     static let shared = KeychainManager()
     
-    private let keychain: Keychain
+    private init() {}
     
-    private init() {
-        let service = Bundle.main.bundleIdentifier ?? "com.example.momentum-iOS"
-        keychain = Keychain(service: service)
-    }
-    
-    func save(_ value: String, forKey key: String){
-        do{
-            try keychain.set(value, key: key)
-            print("saved val for key: \(key)")
-        } catch{
-            print("error: \(error)")
+    // MARK: - Save
+    func save(_ value: String, forKey key: String) {
+        guard let data = value.data(using: .utf8) else { return }
+        
+        // Delete existing item first
+        delete(forKey: key)
+        
+        let query: [String: Any] = [
+            kSecClass as String       : kSecClassGenericPassword,
+            kSecAttrAccount as String : key,
+            kSecValueData as String   : data
+        ]
+        
+        let status = SecItemAdd(query as CFDictionary, nil)
+        if status == errSecSuccess {
+            print("✅ Saved value for key: \(key)")
+        } else {
+            print("❌ Failed to save, status: \(status)")
         }
     }
     
-    func get(forKey key: String) -> String?{
-        do{
-            return keychain.get(key)
-        } catch {
-            print("error: \(error)")
+    // MARK: - Get
+    func get(forKey key: String) -> String? {
+        let query: [String: Any] = [
+            kSecClass as String       : kSecClassGenericPassword,
+            kSecAttrAccount as String : key,
+            kSecReturnData as String  : true,
+            kSecMatchLimit as String  : kSecMatchLimitOne
+        ]
+        
+        var item: CFTypeRef?
+        let status = SecItemCopyMatching(query as CFDictionary, &item)
+        
+        if status == errSecSuccess, let data = item as? Data {
+            return String(data: data, encoding: .utf8)
+        } else {
+            print("❌ Failed to get key: \(key), status: \(status)")
             return nil
         }
     }
     
-    func delete(forKey key: String){
-        do{
-            try keychain.remove(key)
-        } catch {
-            print("error: \(error)")
+    // MARK: - Delete
+    func delete(forKey key: String) {
+        let query: [String: Any] = [
+            kSecClass as String       : kSecClassGenericPassword,
+            kSecAttrAccount as String : key
+        ]
+        
+        let status = SecItemDelete(query as CFDictionary)
+        if status == errSecSuccess {
+            print("🗑 Deleted key: \(key)")
+        } else {
+            print("⚠️ Nothing to delete for key: \(key), status: \(status)")
         }
     }
 }
 
-//Usage:
 // Save JWT
 //KeychainManager.shared.save("jwt-token-value", forKey: "authToken")
 

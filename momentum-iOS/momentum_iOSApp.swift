@@ -17,8 +17,8 @@ struct momentum_iOSApp: App {
                 DashboardView()
                     .environmentObject(appState)
             } else {
-                NavigationView {
-                    LoginView()
+                NavigationStack {
+                    WelcomeView() // 👈 gradient + buttons for Sign Up / Log In
                 }
                 .environmentObject(appState)
             }

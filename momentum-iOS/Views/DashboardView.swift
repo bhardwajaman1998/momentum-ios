@@ -1,30 +1,43 @@
+//
+//  DashboardView.swift
+//  momentum-iOS
+//
+//  Created by Aman Bhardwaj on 2025-09-09.
+//
+
 import SwiftUI
 
 struct DashboardView: View {
-    @EnvironmentObject var appState: AppState
-
+    @State private var selectedTab = 0
+    
     var body: some View {
-        TabView {
+        TabView(selection: $selectedTab) {
+            
             NewEntryView()
                 .tabItem {
-                    Label("Entry", systemImage: "square.and.pencil")
+                    Label("Journal", systemImage: "book.fill")
                 }
+                .tag(0)
+            
             MoodOverviewView()
                 .tabItem {
-                    Label("Overview", systemImage: "chart.line.uptrend.xyaxis")
+                    Label("Mood", systemImage: "face.smiling")
                 }
+                .tag(1)
+            
             InsightsView()
                 .tabItem {
-                    Label("Insights", systemImage: "lightbulb")
+                    Label("Insights", systemImage: "sparkles")
                 }
-            MoodHeatmapView()
-                .tabItem {
-                    Label("Heatmap", systemImage: "calendar")
-                }
+                .tag(2)
+            
             ProfileView()
                 .tabItem {
                     Label("Profile", systemImage: "person.crop.circle")
                 }
+                .tag(3)
         }
+        .accentColor(.purple) // active tab color
     }
 }
+

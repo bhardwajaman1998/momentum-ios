@@ -17,50 +17,109 @@ struct LoginView: View {
     private let authService: AuthService = AuthServiceImpl()
 
     var body: some View {
-        VStack(spacing: 20) {
-            Text("Momentum")
-                .font(.largeTitle)
-                .bold()
+        ZStack {
+            // Background
+            LinearGradient(
+                gradient: Gradient(colors: [Color.purple.opacity(0.8), Color.black]),
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+            .ignoresSafeArea()
 
-            TextField("Email", text: $email)
-                .keyboardType(.emailAddress)
-                .autocapitalization(.none)
-                .padding()
-                .background(Color(.secondarySystemBackground))
-                .cornerRadius(8)
+            VStack(spacing: 24) {
+                Spacer()
 
-            SecureField("Password", text: $password)
-                .padding()
-                .background(Color(.secondarySystemBackground))
-                .cornerRadius(8)
-
-            if let errorMessage = errorMessage {
-                Text(errorMessage)
-                    .foregroundColor(.red)
-                    .font(.caption)
-            }
-
-            Button(action: login) {
-                if isLoading {
-                    ProgressView()
-                } else {
-                    Text("Login")
+                // Title + subtitle
+                VStack(spacing: 8) {
+                    Text("MindMeld")
+                        .font(.title)
+                        .fontWeight(.bold)
                         .foregroundColor(.white)
-                        .padding()
-                        .frame(maxWidth: .infinity)
-                        .background(Color.blue)
-                        .cornerRadius(8)
+
+                    Text("Welcome back to your space")
+                        .font(.subheadline)
+                        .foregroundColor(.white.opacity(0.7))
                 }
+
+                // Error message
+                if let errorMessage = errorMessage {
+                    Text(errorMessage)
+                        .foregroundColor(.red)
+                        .font(.caption)
+                        .padding(.horizontal)
+                }
+
+                // Card with fields
+                VStack(spacing: 16) {
+                    customTextField(
+                        icon: "envelope.fill",
+                        placeholder: "Email or Username",
+                        text: $email,
+                        isSecure: false
+                    )
+
+                    customTextField(
+                        icon: "lock.fill",
+                        placeholder: "Password",
+                        text: $password,
+                        isSecure: true
+                    )
+
+                    HStack {
+                        Spacer()
+                        Button("Forgot Password?") {
+                            print("Forgot password tapped")
+                        }
+                        .font(.caption)
+                        .foregroundColor(.white.opacity(0.7))
+                    }
+                }
+                .padding()
+                .background(Color.black.opacity(0.25))
+                .cornerRadius(16)
+                .padding(.horizontal, 24)
+
+                // Login button
+                Button(action: login) {
+                    if isLoading {
+                        ProgressView()
+                            .tint(.white)
+                    } else {
+                        Text("Log In")
+                            .font(.headline)
+                            .frame(maxWidth: .infinity)
+                            .padding()
+                            .background(
+                                LinearGradient(
+                                    gradient: Gradient(colors: [Color.purple, Color.blue]),
+                                    startPoint: .leading,
+                                    endPoint: .trailing
+                                )
+                            )
+                            .foregroundColor(.white)
+                            .cornerRadius(12)
+                    }
+                }
+                .disabled(isLoading)
+                .padding(.horizontal, 24)
+
+                Spacer()
+
+                // Register link
+                HStack {
+                    Text("Don’t have an account?")
+                        .foregroundColor(.white.opacity(0.7))
+                    NavigationLink("Sign Up", destination: RegisterView())
+                        .foregroundColor(.blue)
+                        .fontWeight(.semibold)
+                }
+                .font(.footnote)
             }
-            .disabled(isLoading)
-
-            Spacer()
-
-            NavigationLink("Don't have an account? Register", destination: RegisterView())
+            .padding(.bottom, 40)
         }
-        .padding()
     }
 
+    // MARK: - Login Logic
     private func login() {
         Task {
             isLoading = true
@@ -72,9 +131,33 @@ struct LoginView: View {
                     appState.isLoggedIn = true
                 }
             } catch {
-                errorMessage = error.localizedDescription
+                DispatchQueue.main.async {
+                    errorMessage = error.localizedDescription
+                }
             }
             isLoading = false
         }
+    }
+
+    // MARK: - Custom TextField
+    private func customTextField(icon: String, placeholder: String, text: Binding<String>, isSecure: Bool) -> some View {
+        HStack {
+            Image(systemName: icon)
+                .foregroundColor(.white.opacity(0.7))
+
+            if isSecure {
+                SecureField("", text: text,
+                            prompt: Text(placeholder).foregroundColor(.white.opacity(0.6)))
+                .foregroundColor(.white)
+            } else {
+                TextField("", text: text,
+                          prompt: Text(placeholder).foregroundColor(.white.opacity(0.6)))
+                .foregroundColor(.white)
+                .autocapitalization(.none)
+            }
+        }
+        .padding()
+        .background(Color.black.opacity(0.25))
+        .cornerRadius(10)
     }
 }
