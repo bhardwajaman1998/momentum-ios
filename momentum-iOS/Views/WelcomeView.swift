@@ -9,82 +9,84 @@ import SwiftUI
 
 struct WelcomeView: View {
     var body: some View {
-        ZStack {
-            // Background gradient (same as Login & Register)
-            LinearGradient(
-                gradient: Gradient(colors: [Color.purple.opacity(0.8), Color.black]),
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-            .ignoresSafeArea()
-            
-            VStack(spacing: 24) {
-                Spacer()
+        NavigationStack {   // 👈 Add this
+            ZStack {
+                // Background gradient
+                LinearGradient(
+                    gradient: Gradient(colors: [Color.purple.opacity(0.8), Color.black]),
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+                .ignoresSafeArea()
                 
-                // Title
-                VStack(spacing: 8) {
-                    Text("MindMeld")
-                        .font(.title)
-                        .fontWeight(.bold)
-                        .foregroundColor(.white)
+                VStack(spacing: 24) {
+                    Spacer()
                     
-                    Text("Your AI-powered journal and mood coach")
-                        .font(.subheadline)
-                        .foregroundColor(.white.opacity(0.7))
-                        .multilineTextAlignment(.center)
-                        .padding(.horizontal, 24)
-                }
-                
-                // Glassy card with actions
-                VStack(spacing: 16) {
-                    NavigationLink(destination: RegisterView()) {
-                        Text("Sign Up")
-                            .font(.headline)
-                            .frame(maxWidth: .infinity)
-                            .padding()
-                            .background(Color.white.opacity(0.15))
-                            .cornerRadius(12)
+                    // Title
+                    VStack(spacing: 8) {
+                        Text("MindMeld")
+                            .font(.title)
+                            .fontWeight(.bold)
                             .foregroundColor(.white)
+                        
+                        Text("Your AI-powered journal and mood coach")
+                            .font(.subheadline)
+                            .foregroundColor(.white.opacity(0.7))
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal, 24)
                     }
                     
-                    NavigationLink(destination: LoginView()) {
-                        Text("Log In")
-                            .font(.headline)
-                            .frame(maxWidth: .infinity)
-                            .padding()
-                            .background(Color.white.opacity(0.15))
-                            .cornerRadius(12)
-                            .foregroundColor(.white)
+                    // Glassy card with actions
+                    VStack(spacing: 16) {
+                        NavigationLink(destination: RegisterView()) {
+                            Text("Sign Up")
+                                .font(.headline)
+                                .frame(maxWidth: .infinity)
+                                .padding()
+                                .background(Color.white.opacity(0.15))
+                                .cornerRadius(12)
+                                .foregroundColor(.white)
+                        }
+                        
+                        NavigationLink(destination: LoginView()) {
+                            Text("Log In")
+                                .font(.headline)
+                                .frame(maxWidth: .infinity)
+                                .padding()
+                                .background(Color.white.opacity(0.15))
+                                .cornerRadius(12)
+                                .foregroundColor(.white)
+                        }
                     }
+                    .padding()
+                    .background(Color.black.opacity(0.25))
+                    .cornerRadius(16)
+                    .padding(.horizontal, 24)
+                    
+                    // Divider
+                    HStack {
+                        Rectangle()
+                            .frame(height: 1)
+                            .foregroundColor(.white.opacity(0.3))
+                        Text("Or continue with")
+                            .font(.caption)
+                            .foregroundColor(.white.opacity(0.7))
+                        Rectangle()
+                            .frame(height: 1)
+                            .foregroundColor(.white.opacity(0.3))
+                    }
+                    .padding(.horizontal, 32)
+                    
+                    // Social buttons
+                    HStack(spacing: 20) {
+                        socialButton(icon: "apple_logo")
+                        socialButton(icon: "google_logo")
+                    }
+                    
+                    Spacer()
                 }
-                .padding()
-                .background(Color.black.opacity(0.25))
-                .cornerRadius(16)
-                .padding(.horizontal, 24)
-                
-                // Divider with text
-                HStack {
-                    Rectangle()
-                        .frame(height: 1)
-                        .foregroundColor(.white.opacity(0.3))
-                    Text("Or continue with")
-                        .font(.caption)
-                        .foregroundColor(.white.opacity(0.7))
-                    Rectangle()
-                        .frame(height: 1)
-                        .foregroundColor(.white.opacity(0.3))
-                }
-                .padding(.horizontal, 32)
-                
-                // Social buttons
-                HStack(spacing: 20) {
-                    socialButton(icon: "apple_logo")
-                    socialButton(icon: "google_logo")  // 👈 Use your Google asset here
-                }
-                
-                Spacer()
+                .padding(.bottom, 40)
             }
-            .padding(.bottom, 40)
         }
     }
     
@@ -93,7 +95,7 @@ struct WelcomeView: View {
         Button(action: {
             print("\(icon) tapped")
         }) {
-            if icon.contains("logo") { // asset image
+            if icon.contains("logo") {
                 Image(icon)
                     .resizable()
                     .scaledToFit()
@@ -101,7 +103,7 @@ struct WelcomeView: View {
                     .padding()
                     .background(Color.white.opacity(0.15))
                     .clipShape(Circle())
-            } else { // SF Symbol fallback
+            } else {
                 Image(systemName: icon)
                     .resizable()
                     .scaledToFit()

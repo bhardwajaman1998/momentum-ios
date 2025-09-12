@@ -11,6 +11,11 @@ struct RegisterView: View {
     @State private var email = ""
     @State private var password = ""
     @State private var confirmPassword = ""
+    @State private var isLoading = false
+    @State private var errorMessage: String?
+    
+    @EnvironmentObject var appState: AppState
+    private let authService: AuthService = AuthServiceImpl()
     
     var body: some View {
         ZStack {
@@ -39,6 +44,14 @@ struct RegisterView: View {
                         .padding(.horizontal, 24)
                 }
                 
+                // Error message
+                if let errorMessage = errorMessage {
+                    Text(errorMessage)
+                        .foregroundColor(.red)
+                        .font(.caption)
+                        .padding(.horizontal)
+                }
+                
                 // Card with fields
                 VStack(spacing: 16) {
                     customTextField(icon: "envelope.fill",
@@ -62,23 +75,27 @@ struct RegisterView: View {
                 .padding(.horizontal, 24)
                 
                 // Sign Up button
-                Button(action: {
-                    print("Sign Up tapped")
-                }) {
-                    Text("Sign Up")
-                        .font(.headline)
-                        .frame(maxWidth: .infinity)
-                        .padding()
-                        .background(
-                            LinearGradient(
-                                gradient: Gradient(colors: [Color.purple, Color.blue]),
-                                startPoint: .leading,
-                                endPoint: .trailing
+                Button(action: register) {
+                    if isLoading {
+                        ProgressView()
+                            .tint(.white)
+                    } else {
+                        Text("Sign Up")
+                            .font(.headline)
+                            .frame(maxWidth: .infinity)
+                            .padding()
+                            .background(
+                                LinearGradient(
+                                    gradient: Gradient(colors: [Color.purple, Color.blue]),
+                                    startPoint: .leading,
+                                    endPoint: .trailing
+                                )
                             )
-                        )
-                        .foregroundColor(.white)
-                        .cornerRadius(12)
+                            .foregroundColor(.white)
+                            .cornerRadius(12)
+                    }
                 }
+                .disabled(isLoading)
                 .padding(.horizontal, 24)
                 
                 Spacer()
@@ -94,6 +111,31 @@ struct RegisterView: View {
                 .font(.footnote)
             }
             .padding(.bottom, 40)
+        }
+    }
+    
+    // MARK: - Register Logic
+    private func register() {
+        guard password == confirmPassword else {
+            errorMessage = "Passwords do not match"
+            return
+        }
+        
+        Task {
+            isLoading = true
+            errorMessage = nil
+            do {
+                let user = try await authService.register(email: email, password: password, name: email) // using email as placeholder name
+                DispatchQueue.main.async {
+                    appState.currentUser = user
+                    appState.isLoggedIn = true
+                }
+            } catch {
+                DispatchQueue.main.async {
+                    errorMessage = error.localizedDescription
+                }
+            }
+            isLoading = false
         }
     }
     
@@ -117,19 +159,5 @@ struct RegisterView: View {
         .padding()
         .background(Color.black.opacity(0.25))
         .cornerRadius(10)
-    }
-}
-
-
-extension View {
-    func placeholder<Content: View>(
-        when shouldShow: Bool,
-        alignment: Alignment = .leading,
-        @ViewBuilder placeholder: () -> Content
-    ) -> some View {
-        ZStack(alignment: alignment) {
-            if shouldShow { placeholder() }
-            self
-        }
     }
 }

@@ -8,11 +8,15 @@
 import Foundation
 
 struct User: Codable {
-    let id: String
+    let id: Int
     let email: String
+    let password: String?      // nullable field in backend
     let name: String
+    let avatarUrl: String?     // nullable in backend
+    let streak: Int
+    let darkMode: Bool
+    let createdAt: String      // you can switch to Date later with custom decoder
 }
-
 enum AuthError: Error, LocalizedError {
     case invalidCredentials
     case serverError
@@ -41,80 +45,67 @@ protocol AuthService {
 }
 
 final class AuthServiceImpl: AuthService {
-    private let baseURL = "http://localhost:5000/api"
-    private let useMock = true
+    
+    private let client = APIClient.shared
     
     func login(email: String, password: String) async throws -> User {
-        if useMock {
-            return try await mockLogin()
+        return try await withCheckedThrowingContinuation { continuation in
+            client.request(endpoint: "/auth/login", method: "POST", body: [
+                "email": email,
+                "password": password
+            ]) { (result: Result<AuthResponse, Error>) in
+                switch result {
+                case .success(let response):
+                    if let token = response.token, let user = response.user {
+                        print(response)
+                        KeychainHelper.shared.save(token, forKey: "authToken")
+                        continuation.resume(returning: user)
+                    } else if let errorMsg = response.error {
+                        // ✅ Server sent an error
+                        continuation.resume(throwing: NSError(domain: "", code: 401, userInfo: [NSLocalizedDescriptionKey: errorMsg]))
+                    } else {
+                        // ✅ Fallback error
+                        continuation.resume(throwing: AuthError.unknown)
+                    }
+                case .failure(let error):
+                    continuation.resume(throwing: error)
+                }
+            }
         }
-        
-        let url = URL(string: "\(baseURL)/auth/login")!
-        var request = URLRequest(url: url)
-        
-        request.httpMethod = "POST"
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        let body = ["email": email, "password": password]
-        request.httpBody = try JSONSerialization.data(withJSONObject: body, options: [])
-        
-        let (data, response) = try await URLSession.shared.data(for: request)
-        
-        guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
-            throw AuthError.invalidCredentials
-        }
-        
-        struct Response: Codable {
-            let token: String
-            let user: User
-        }
-        
-        let decoded = try JSONDecoder().decode(Response.self, from: data)
-        KeychainManager.shared.save(decoded.token, forKey: "authToken")
-        
-        return decoded.user
     }
+
     
     func register(email: String, password: String, name: String?) async throws -> User {
-        if useMock {
-            return try await mockRegister()
+        return try await withCheckedThrowingContinuation { continuation in
+            client.request(endpoint: "/auth/signup", method: "POST", body: [
+                "email": email,
+                "password": password,
+                "name": name ?? "null"
+            ]) { (result: Result<AuthResponse, Error>) in
+                switch result {
+                case .success(let response):
+                    KeychainHelper.shared.save(response.token ?? "null", forKey: "authToken")
+                    continuation.resume(returning: response.user!)
+                case .failure(let error):
+                    continuation.resume(throwing: error)
+                }
+            }
         }
-        
-        let url = URL(string: "\(baseURL)/auth/register")!
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        
-        let body: [String: Any] = [
-            "email": email,
-            "password": password,
-            "name": name ?? ""
-        ]
-        request.httpBody = try JSONSerialization.data(withJSONObject: body)
-        
-        let (data, response) = try await URLSession.shared.data(for: request)
-        
-        guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 201 else {
-            throw AuthError.serverError
-        }
-        
-        struct Response: Codable {
-            let token: String
-            let user: User
-        }
-        
-        let decoded = try JSONDecoder().decode(Response.self, from: data)
-        KeychainManager.shared.save(decoded.token, forKey: "authToken")
-        
-        return decoded.user
     }
     
     func logout() {
-        KeychainManager.shared.delete(forKey: "authToken")
+        KeychainHelper.shared.delete("authToken")
     }
     
     func getStoredToken() -> String? {
-        return KeychainManager.shared.get(forKey: "authToken")
+        return KeychainHelper.shared.get("authToken")
     }
+}
+
+struct AuthResponse: Codable {
+    let token: String?
+    let user: User?
+    let error: String?
 }
 
 // MARK: - Mock Helpers
